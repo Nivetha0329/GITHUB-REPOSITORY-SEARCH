@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Repository Search</title>
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"> 
+  
+  <style>
+    body {
+      background-color: #ffffff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 200 200'%3E%3Cpolygon fill='%23DCEFFA' points='100 0 0 100 100 100 100 200 200 100 200 0'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+    .btn-primary:hover {
+    background-color: #50454b;
+    border-color: #a39b9b23;
+  }
+    .animate-character {
+      background-image: linear-gradient(
+        -225deg,
+        #2f65ba 0%,
+        #44107a 29%,
+        #ff1361 67%,
+        #fff800 100%
+      );
+      background-clip: border-box;
+      background-size: 200% auto;
+      color: #fff;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: textclip 5s linear infinite;
+      display: inline-block;
+      text-align: center;
+      font-size: 50px;
+    }
+
+    @keyframes textclip {
+      to {
+        background-position: 200% center;
+      }
+    }
+    
+    .loading {
+      text-align: center;
+      margin-top: 10px;
+      font-style: italic;
+      color: #090000;
+      display: none;
+      animation: strobe 1s infinite;
+    }
+    @keyframes strobe {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  ::placeholder {
+    font-style: italic;
+  }
+
+    .container {
+      margin-top: 50px;
+    }
+  
+    .results-container {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    border: 5px solid #433b3b; /* Add border */
+    padding: 10px;
+  }
+
+  .results-container:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add box shadow on hover */
+  }
+
+  
+    .results-container.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  
+    .repository-card {
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+  
+    .repository-card:hover {
+      transform: translateY(-3px);
+    }
+  
+    .repository-details {
+      margin-top: 20px;
+    }
+  
+    .repository-details .repository-name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+  
+    .repository-details .repository-description {
+      margin-bottom: 10px;
+    }
+  
+    .repository-details .btn-view-details {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1 class="animate-character" style="text-align: center; font-family: 'OneLine Bold'; color: #06001a; font-weight: bold;">GITHUB REPOSITORY SEARCH</h1>
+    <br><br><br>
+    <form onsubmit="event.preventDefault(); searchRepositories()">
+      <div class="form-group">
+        <label for="urlInput" style="font-weight:bold">Enter GitHub URL:</label>
+        <input type="text" class="form-control" id="urlInput" italic placeholder="Enter URL...">
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+      <div class="loading" id="loadingText">Loading...</div>
+    </form>
+    <hr>
+    <div class="results-container" id="resultsContainer"></div>
+  </div>
+
+  <div class="modal fade" id="repositoryModal" tabindex="-1" role="dialog" aria-labelledby="repositoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="repositoryModalLabel">Repository Details</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="repositoryDetails" class="repository-details"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  
+  <script>
+    function searchRepositories() {
+  var urlInput = document.getElementById("urlInput");
+  var url = urlInput.value;
+
+  if (!url.trim()) {
+    return;
+  }
+
+  var resultsContainer = document.getElementById("resultsContainer");
+  resultsContainer.innerHTML = "";
+
+  var loadingText = document.getElementById("loadingText");
+  loadingText.style.display = "block";
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/search/?repoUrl=" + encodeURIComponent(url), true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      loadingText.style.display = "none";
+
+      if (xhr.status === 200) {
+        var repositories = JSON.parse(xhr.responseText);
+
+        resultsContainer.innerHTML = "";
+
+        if (repositories.length === 0) {
+          resultsContainer.innerHTML = "<p>No repositories found.</p>";
+          return;
+        }
+
+        for (var i = 0; i < repositories.length; i++) {
+          var repository = repositories[i];
+          var repositoryCard = document.createElement("div");
+          repositoryCard.className = "card mb-3 repository-card";
+          repositoryCard.addEventListener("click", function() {
+            openRepositoryModal(repository);
+          });
+
+          var cardBody = document.createElement("div");
+          cardBody.className = "card-body";
+          var titleElement = document.createElement("h5");
+          titleElement.className = "card-title";
+          titleElement.textContent = repository.name;
+          var descriptionElement = document.createElement("p");
+          descriptionElement.className = "card-text";
+          descriptionElement.textContent = repository.description;
+
+          cardBody.appendChild(titleElement);
+          cardBody.appendChild(descriptionElement);
+          repositoryCard.appendChild(cardBody);
+          resultsContainer.appendChild(repositoryCard);
+        }
+
+        resultsContainer.classList.add("show");
+      } else {
+        var errorResponse = JSON.parse(xhr.responseText);
+        resultsContainer.innerHTML = "<p>Error: " + errorResponse.error + "</p>";
+      }
+    }
+  };
+
+  xhr.send();
+
+  resultsContainer.innerHTML = "<div>Loading...</div>";
+}
+
+
+    function openRepositoryModal(repository) {
+      var repositoryDetails = document.getElementById("repositoryDetails");
+      repositoryDetails.innerHTML = "<div class='repository-name'><strong>Repository: </strong>" + repository.name + "</div>";
+      repositoryDetails.innerHTML += "<div class='repository-description'><strong>Reason for Complexity: </strong>" + repository.description + "</div>";
+
+      $('#repositoryModal').modal('show');
+    }
+  </script>
+</body>
+</html>
